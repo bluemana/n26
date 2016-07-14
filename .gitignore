@@ -1,9 +1,10 @@
 # Ignore OSX directory files
 .DS_Store
 
-# Ignore Eclipse project files
+# Ignore environment configuration files
 .classpath
 .project
+log4j.properties
 
 # Ignore other files
 bin/
