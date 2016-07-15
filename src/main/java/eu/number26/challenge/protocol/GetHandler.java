@@ -1,8 +1,9 @@
 package eu.number26.challenge.protocol;
 
+import eu.number26.challenge.core.Context;
 import io.netty.handler.codec.http.HttpMethod;
 
-public class BaseResourceHandler implements ProtocolHandler {
+public class GetHandler implements ProtocolHandler {
 
 	private static final Link LINK = new Link(HttpMethod.GET, "");
 	
@@ -12,7 +13,7 @@ public class BaseResourceHandler implements ProtocolHandler {
 	}
 
 	@Override
-	public String handle(String json) throws Exception {
+	public String handle(Context context, Link link, String body) throws Exception {
 		return null;
 	}
 }

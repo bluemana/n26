@@ -2,6 +2,7 @@ package eu.number26.challenge.connect;
 
 import org.apache.log4j.Logger;
 
+import eu.number26.challenge.core.Context;
 import eu.number26.challenge.protocol.Configuration;
 import eu.number26.challenge.protocol.Link;
 import eu.number26.challenge.protocol.ProtocolHandler;
@@ -22,6 +23,12 @@ public class HttpRestBridge extends ChannelHandlerAdapter {
 
 	private static final Logger LOGGER = Logger.getLogger(HttpRestBridge.class);
 	
+	private final Context context;
+	
+	public HttpRestBridge(Context context) {
+		this.context = context;
+	}
+	
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		FullHttpRequest request = (FullHttpRequest) msg;
@@ -29,15 +36,12 @@ public class HttpRestBridge extends ChannelHandlerAdapter {
 		FullHttpResponse response = null;
 		if (request.decoderResult().isSuccess()) {
 			String uri = request.uri();
-			if (uri.endsWith("/")) {
-				uri = uri.substring(0, uri.length() - 1);
-			}
 			HttpMethod method = request.method();
 			Link link = new Link(method, uri);
 			ProtocolHandler handler = Configuration.getHandler(link);
 			if (handler != null) {
 				try {
-					String json = handler.handle(request.content().toString(CharsetUtil.UTF_8));
+					String json = handler.handle(context, link, request.content().toString(CharsetUtil.UTF_8));
 					response = createHttpResponse(HttpResponseStatus.OK, json);
 				} catch (Exception e) {
 					response = createHttpResponse(HttpResponseStatus.BAD_REQUEST, e.getMessage());
