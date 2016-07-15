@@ -57,15 +57,20 @@ public class Context {
 				@Override
 				public Void call() throws Exception {
 					if (!transactionsById.containsKey(transaction.getId())) {
-						ContextTransaction contextTransaction = new ContextTransaction(transaction);
-						transactionsById.put(transaction.getId(), contextTransaction);
-						Set<ContextTransaction> contextTransactions = transactionsByType.get(transaction.getType());
-						if (contextTransactions == null) {
-							contextTransactions = new HashSet<>();
-							transactionsByType.put(transaction.getType(), contextTransactions);
+						if (transaction.getParentId() == null ||
+								transactionsById.containsKey(transaction.getParentId())) {
+							ContextTransaction contextTransaction = new ContextTransaction(transaction);
+							transactionsById.put(transaction.getId(), contextTransaction);
+							Set<ContextTransaction> contextTransactions = transactionsByType.get(transaction.getType());
+							if (contextTransactions == null) {
+								contextTransactions = new HashSet<>();
+								transactionsByType.put(transaction.getType(), contextTransactions);
+							}
+							contextTransactions.add(new ContextTransaction(transaction));
+							updateTransitiveSums(contextTransaction);
+						} else {
+							throw new IllegalArgumentException("Invalid parent ID: " + transaction.getParentId());
 						}
-						contextTransactions.add(new ContextTransaction(transaction));
-						updateTransitiveSums(contextTransaction);
 					} else {
 						throw new IllegalArgumentException("Invalid transaction ID: " + transaction.getId());
 					}

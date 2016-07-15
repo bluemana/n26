@@ -1,10 +1,10 @@
 package eu.number26.challenge.protocol.transaction;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import eu.number26.challenge.core.Context;
 import eu.number26.challenge.core.Transaction;
+import eu.number26.challenge.protocol.Configuration;
 import eu.number26.challenge.protocol.Link;
 import eu.number26.challenge.protocol.ProtocolHandler;
 import io.netty.handler.codec.http.HttpMethod;
@@ -12,7 +12,7 @@ import io.netty.handler.codec.http.HttpMethod;
 public class PutTransactionHandler implements ProtocolHandler {
 
 	private static final Link LINK = new Link(HttpMethod.PUT, "/transactionservice/transaction");
-	private static final Gson GSON = new GsonBuilder().create();
+	private static final Gson GSON = Configuration.GSON;
 	
 	@Override
 	public Link getLink() {

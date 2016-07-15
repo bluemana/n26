@@ -47,7 +47,7 @@ public class HttpRestBridge extends ChannelHandlerAdapter {
 					response = createHttpResponse(HttpResponseStatus.BAD_REQUEST, e.getMessage());
 				}
 			} else {
-				response = createHttpResponse(HttpResponseStatus.NOT_FOUND, null);
+				response = createHttpResponse(HttpResponseStatus.NOT_FOUND, uri);
 			}
 		} else {
 			response = createHttpResponse(HttpResponseStatus.BAD_REQUEST,

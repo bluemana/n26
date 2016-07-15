@@ -26,7 +26,7 @@ public class ContextTest {
 	}
 	
 	@Test
-	public void type_GetEmptyType_EmptySet() {
+	public void type_GetUnmatchingType_EmptySet() {
 		Context context = new Context();
 		Assert.assertTrue(context.getTransactions("car").isEmpty());
 	}
@@ -63,5 +63,12 @@ public class ContextTest {
 		expected = new BigDecimal(250500);
 		result = context.transitiveSum(3);
 		Assert.assertTrue(expected.equals(result));
+	}
+	
+	@Test
+	public void sum_UnmatchingTransactionId_Null() {
+		Context context = new Context();
+		BigDecimal result = context.transitiveSum(1);
+		Assert.assertTrue(result == null);
 	}
 }
