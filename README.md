@@ -81,42 +81,6 @@ HTTP 200 OK
 }
 ```
 
-#### List all transactions
-
-**Request**
-
-```
-GET /transactionservice/transactions
-```
-
-**Response**
-
-```
-HTTP 200 OK
-
-{
-  "transactions": [
-    {
-      "id": 1,
-      "type": "shopping",
-      "amount": 10.5
-    },
-    {
-      "id": 2,
-      "parent_id": 1,
-      "type": "groceries",
-      "amount": 12
-    },
-    {
-      "id": 3,
-      "parent_id": 1,
-      "type": "car",
-      "amount": 15000
-    }
-  ]
-}
-```
-
 #### List all transaction IDs by type
 
 **Request**
@@ -168,3 +132,13 @@ HTTP 200 OK
   "sum": 12
 }
 ```
+
+## Project dependencies
+
+The project depends on the following libraries:
+
+* [log4j 1.2](https://logging.apache.org/log4j/1.2/)
+* [Netty 5.0](http://netty.io/)
+* [Gson 2.6.2](https://sites.google.com/site/gson)
+* [JUnit 4](http://junit.org/)
+* [Mockito 1.10] (http://mockito.org)
