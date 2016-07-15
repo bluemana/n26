@@ -5,6 +5,7 @@ import java.util.Map;
 
 import eu.number26.challenge.protocol.transaction.GetTransactionHandler;
 import eu.number26.challenge.protocol.transaction.PutTransactionHandler;
+import eu.number26.challenge.protocol.type.GetTypeHandler;
 
 public class Configuration {
 
@@ -18,6 +19,8 @@ public class Configuration {
 		handler = new PutTransactionHandler();
 		HANDLERS.put(handler.getLink(), handler);
 		handler = new GetTransactionHandler();
+		HANDLERS.put(handler.getLink(), handler);
+		handler = new GetTypeHandler();
 		HANDLERS.put(handler.getLink(), handler);
 	}
 	

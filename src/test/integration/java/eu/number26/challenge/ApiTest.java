@@ -2,6 +2,9 @@ package eu.number26.challenge;
 
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -16,6 +19,7 @@ import eu.number26.challenge.core.Transaction;
 import eu.number26.challenge.protocol.transaction.GetTransactionResponse;
 import eu.number26.challenge.protocol.transaction.PutTransactionRequest;
 import eu.number26.challenge.protocol.transaction.PutTransactionResponse;
+import eu.number26.challenge.protocol.type.GetTypeResponse;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
@@ -140,6 +144,38 @@ public class ApiTest {
 		channel.checkException();
 		FullHttpResponse response = channel.readOutbound();
 		Assert.assertTrue(response.status() == HttpResponseStatus.BAD_REQUEST);
+	}
+	
+	@Test
+	public void types_GetType_TransactionList() {
+		Context context = Mockito.mock(Context.class);
+		Set<Transaction> transactions = new HashSet<>();
+		transactions.add(new Transaction(1, null, "fee", new BigDecimal(13)));
+		transactions.add(new Transaction(2, 1L, "fee", new BigDecimal(20)));
+		Set<Long> transactionIds = new HashSet<>();
+		transactionIds.add(1L);
+		transactionIds.add(2L);
+		Mockito.when(context.getTransactions("fee")).thenReturn(transactions);
+		EmbeddedChannel channel = new EmbeddedChannel(new HttpRestBridge(context));
+		HttpRequest request = createHttpRequest(HttpMethod.GET, "/transactionservice/type/fee", null);
+		channel.writeInbound(request);
+		channel.checkException();
+		FullHttpResponse response = channel.readOutbound();
+		Assert.assertTrue(response.status() == HttpResponseStatus.OK);
+		Assert.assertTrue(transactionIds.equals(GSON.fromJson(response.content().toString(Charset.forName("utf-8")), GetTypeResponse.class)));
+	}
+	
+	@Test
+	public void types_GetEmptyType_EmptyTransactionList() {
+		Context context = Mockito.mock(Context.class);
+		Mockito.when(context.getTransactions("fee")).thenReturn(Collections.emptySet());
+		EmbeddedChannel channel = new EmbeddedChannel(new HttpRestBridge(context));
+		HttpRequest request = createHttpRequest(HttpMethod.GET, "/transactionservice/type/fee", null);
+		channel.writeInbound(request);
+		channel.checkException();
+		FullHttpResponse response = channel.readOutbound();
+		Assert.assertTrue(response.status() == HttpResponseStatus.OK);
+		Assert.assertTrue(GSON.fromJson(response.content().toString(Charset.forName("utf-8")), Set.class).isEmpty());
 	}
 	
 	private HttpRequest createHttpRequest(HttpMethod method, String path, String content) {
