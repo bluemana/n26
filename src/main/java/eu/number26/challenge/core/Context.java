@@ -40,4 +40,21 @@ public class Context {
 			LOGGER.error(e.getMessage(), e);
 		}
 	}
+	
+	public Transaction getTransaction(long id) {
+		Transaction result = null;
+		try {
+			result = executor.submit(new Callable<Transaction>() {
+
+				@Override
+				public Transaction call() throws Exception {
+					return transactions.get(id);
+				}
+				
+			}).get();
+		} catch (InterruptedException | ExecutionException e) {
+			LOGGER.error(e.getMessage(), e);
+		}
+		return result;
+	}
 }

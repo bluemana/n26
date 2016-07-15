@@ -13,6 +13,7 @@ import com.google.gson.GsonBuilder;
 import eu.number26.challenge.connect.HttpRestBridge;
 import eu.number26.challenge.core.Context;
 import eu.number26.challenge.core.Transaction;
+import eu.number26.challenge.protocol.transaction.GetTransactionResponse;
 import eu.number26.challenge.protocol.transaction.PutTransactionRequest;
 import eu.number26.challenge.protocol.transaction.PutTransactionResponse;
 import io.netty.buffer.Unpooled;
@@ -30,7 +31,7 @@ public class ApiTest {
 	private static final Gson GSON = new GsonBuilder().create();
 	
 	@Test
-	public void baseResource_Get_200() {
+	public void baseResource_Get_Resource() {
 		Context context = Mockito.mock(Context.class);
 		EmbeddedChannel channel = new EmbeddedChannel(new HttpRestBridge(context));
 		HttpRequest request = createHttpRequest(HttpMethod.GET, "", null);
@@ -46,7 +47,7 @@ public class ApiTest {
 	}
 	
 	@Test
-	public void transactionService_Get_200() {
+	public void transactionService_Get_Service() {
 		Context context = Mockito.mock(Context.class);
 		EmbeddedChannel channel = new EmbeddedChannel(new HttpRestBridge(context));
 		HttpRequest request = createHttpRequest(HttpMethod.GET, "/transactionservice", null);
@@ -62,7 +63,7 @@ public class ApiTest {
 	}
 	
 	@Test
-	public void invalidResource_Get_404() {
+	public void invalidResource_Get_Error() {
 		Context context = Mockito.mock(Context.class);
 		EmbeddedChannel channel = new EmbeddedChannel(new HttpRestBridge(context));
 		HttpRequest request = createHttpRequest(HttpMethod.GET, "/something", null);
@@ -76,28 +77,65 @@ public class ApiTest {
 	public void transaction_Put_Created() {
 		Context context = Mockito.mock(Context.class);
 		EmbeddedChannel channel = new EmbeddedChannel(new HttpRestBridge(context));
-		PutTransactionRequest requestBody = new PutTransactionRequest(null, "shopping", new BigDecimal(10.5));
-		PutTransactionResponse expectedBody = new PutTransactionResponse(PutTransactionResponse.Status.OK);
+		PutTransactionRequest requestBody = new PutTransactionRequest(null, "book", new BigDecimal(15));
+		PutTransactionResponse expectedResponseBody = new PutTransactionResponse(PutTransactionResponse.Status.OK);
 		HttpRequest request = createHttpRequest(HttpMethod.PUT, "/transactionservice/transaction/1", GSON.toJson(requestBody));
 		channel.writeInbound(request);
 		channel.checkException();
 		FullHttpResponse response = channel.readOutbound();
 		Assert.assertTrue(response.status() == HttpResponseStatus.OK);
-		PutTransactionResponse responseBody = new GsonBuilder().create().fromJson(
-			response.content().toString(Charset.forName("utf-8")),
+		PutTransactionResponse responseBody = GSON.fromJson(response.content().toString(Charset.forName("utf-8")),
 			PutTransactionResponse.class);
-		Assert.assertTrue(responseBody.equals(expectedBody));
-		Mockito.verify(context).addTransaction(new Transaction(1, null, "shopping", new BigDecimal(10.5)));
+		Assert.assertTrue(responseBody.equals(expectedResponseBody));
+		Mockito.verify(context).addTransaction(new Transaction(1, null, "book", new BigDecimal(15)));
 	}
 	
 	@Test
 	public void transaction_PutTransactionWithInvalidId_Error() {
 		Context context = Mockito.mock(Context.class);
 		Mockito.doThrow(new IllegalArgumentException("Invalid transaction ID: 1"))
-			.when(context).addTransaction(new Transaction(1, null, "shopping", new BigDecimal(10.5)));;
+			.when(context).addTransaction(new Transaction(1, null, "rocket", new BigDecimal(15000000000L)));;
 		EmbeddedChannel channel = new EmbeddedChannel(new HttpRestBridge(context));
 		PutTransactionRequest requestBody = new PutTransactionRequest(null, "shopping", new BigDecimal(10.5));
 		HttpRequest request = createHttpRequest(HttpMethod.PUT, "/transactionservice/transaction/1", GSON.toJson(requestBody));
+		channel.writeInbound(request);
+		channel.checkException();
+		FullHttpResponse response = channel.readOutbound();
+		Assert.assertTrue(response.status() == HttpResponseStatus.BAD_REQUEST);
+	}
+	
+	@Test
+	public void transaction_GetTransaction_Transaction() {
+		Context context = Mockito.mock(Context.class);
+		Mockito.when(context.getTransaction(1)).thenReturn(new Transaction(1, null, "sport", new BigDecimal(30)));
+		EmbeddedChannel channel = new EmbeddedChannel(new HttpRestBridge(context));
+		HttpRequest request = createHttpRequest(HttpMethod.GET, "/transactionservice/transaction/1", null);
+		GetTransactionResponse expectedResponseBody = new GetTransactionResponse(null, "sport", new BigDecimal(30));
+		channel.writeInbound(request);
+		channel.checkException();
+		FullHttpResponse response = channel.readOutbound();
+		Assert.assertTrue(response.status() == HttpResponseStatus.OK);
+		GetTransactionResponse responseBody = GSON.fromJson(response.content().toString(Charset.forName("utf-8")),
+			GetTransactionResponse.class);
+		Assert.assertTrue(responseBody.equals(expectedResponseBody));
+	}
+	
+	@Test
+	public void transaction_GetNonExistentTransaction_Error() {
+		Context context = Mockito.mock(Context.class);
+		EmbeddedChannel channel = new EmbeddedChannel(new HttpRestBridge(context));
+		HttpRequest request = createHttpRequest(HttpMethod.GET, "/transactionservice/transaction/1", null);
+		channel.writeInbound(request);
+		channel.checkException();
+		FullHttpResponse response = channel.readOutbound();
+		Assert.assertTrue(response.status() == HttpResponseStatus.BAD_REQUEST);
+	}
+	
+	@Test
+	public void transaction_GetTransactionWithWrongIdType_Error() {
+		Context context = Mockito.mock(Context.class);
+		EmbeddedChannel channel = new EmbeddedChannel(new HttpRestBridge(context));
+		HttpRequest request = createHttpRequest(HttpMethod.GET, "/transactionservice/transaction/id1", null);
 		channel.writeInbound(request);
 		channel.checkException();
 		FullHttpResponse response = channel.readOutbound();
