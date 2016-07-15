@@ -1,5 +1,6 @@
 package eu.number26.challenge.core;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,9 +17,32 @@ public class Context {
 
 	private static final Logger LOGGER = Logger.getLogger(Context.class);
 	
+	private class ContextTransaction {
+		
+		private final Transaction transaction;
+		private BigDecimal transitiveSum;
+		
+		public ContextTransaction(Transaction transaction) {
+			this.transaction = transaction;
+			transitiveSum = transaction.getAmount();
+		}
+		
+		public Transaction getTransaction() {
+			return transaction;
+		}
+		
+		public BigDecimal getTransitiveSum() {
+			return transitiveSum;
+		}
+		
+		public void setTransitiveSum(BigDecimal transitiveSum) {
+			this.transitiveSum = transitiveSum;
+		}
+	}
+	
 	private final ExecutorService executor;
-	private final Map<Long, Transaction> transactionsById;
-	private final Map<String, Set<Transaction>> transactionsByType;
+	private final Map<Long, ContextTransaction> transactionsById;
+	private final Map<String, Set<ContextTransaction>> transactionsByType;
 	
 	public Context() {
 		executor = Executors.newSingleThreadExecutor();
@@ -33,13 +57,15 @@ public class Context {
 				@Override
 				public Void call() throws Exception {
 					if (!transactionsById.containsKey(transaction.getId())) {
-						transactionsById.put(transaction.getId(), transaction);
-						Set<Transaction> transactions = transactionsByType.get(transaction.getType());
-						if (transactions == null) {
-							transactions = new HashSet<>();
-							transactionsByType.put(transaction.getType(), transactions);
+						ContextTransaction contextTransaction = new ContextTransaction(transaction);
+						transactionsById.put(transaction.getId(), contextTransaction);
+						Set<ContextTransaction> contextTransactions = transactionsByType.get(transaction.getType());
+						if (contextTransactions == null) {
+							contextTransactions = new HashSet<>();
+							transactionsByType.put(transaction.getType(), contextTransactions);
 						}
-						transactions.add(transaction);
+						contextTransactions.add(new ContextTransaction(transaction));
+						updateTransitiveSums(contextTransaction);
 					} else {
 						throw new IllegalArgumentException("Invalid transaction ID: " + transaction.getId());
 					}
@@ -52,6 +78,15 @@ public class Context {
 		}
 	}
 	
+	private void updateTransitiveSums(ContextTransaction contextTransaction) {
+		ContextTransaction current = contextTransaction;
+		while (current.getTransaction().getParentId() != null) {
+			ContextTransaction parent = transactionsById.get(current.getTransaction().getParentId());
+			parent.setTransitiveSum(parent.getTransitiveSum().add(contextTransaction.getTransitiveSum()));
+			current = parent;
+		}
+	}
+	
 	public Transaction getTransaction(long id) {
 		Transaction result = null;
 		try {
@@ -59,7 +94,8 @@ public class Context {
 
 				@Override
 				public Transaction call() throws Exception {
-					return transactionsById.get(id);
+					ContextTransaction contextTransaction = transactionsById.get(id);
+					return contextTransaction != null ? contextTransaction.getTransaction() : null;
 				}
 				
 			}).get();
@@ -76,14 +112,39 @@ public class Context {
 
 				@Override
 				public Set<Transaction> call() throws Exception {
-					Set<Transaction> transactions = transactionsByType.get(type);
-					if (transactions != null) {
-						return new HashSet<>(transactions);
+					Set<ContextTransaction> contextTransactions = transactionsByType.get(type);
+					if (contextTransactions != null) {
+						Set<Transaction> transactionsSet = new HashSet<>();
+						for (ContextTransaction contextTransaction : contextTransactions) {
+							transactionsSet.add(contextTransaction.getTransaction());
+						}
+						return transactionsSet;
 					} else {
 						return Collections.emptySet();
 					}
 				}
 				
+			}).get();
+		} catch (InterruptedException | ExecutionException e) {
+			LOGGER.error(e.getMessage(), e);
+		}
+		return result;
+	}
+	
+	public BigDecimal transitiveSum(long transactionId) {
+		BigDecimal result = null;
+		try {
+			result = executor.submit(new Callable<BigDecimal>() {
+
+				@Override
+				public BigDecimal call() throws Exception {
+					ContextTransaction contextTransaction = transactionsById.get(transactionId);
+					if (contextTransaction != null) {
+						return contextTransaction.getTransitiveSum();
+					} else {
+						return null;
+					}
+				}
 			}).get();
 		} catch (InterruptedException | ExecutionException e) {
 			LOGGER.error(e.getMessage(), e);

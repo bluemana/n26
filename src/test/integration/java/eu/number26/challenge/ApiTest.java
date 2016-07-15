@@ -16,6 +16,7 @@ import com.google.gson.GsonBuilder;
 import eu.number26.challenge.connect.HttpRestBridge;
 import eu.number26.challenge.core.Context;
 import eu.number26.challenge.core.Transaction;
+import eu.number26.challenge.protocol.sum.GetSumResponse;
 import eu.number26.challenge.protocol.transaction.GetTransactionResponse;
 import eu.number26.challenge.protocol.transaction.PutTransactionRequest;
 import eu.number26.challenge.protocol.transaction.PutTransactionResponse;
@@ -175,7 +176,33 @@ public class ApiTest {
 		channel.checkException();
 		FullHttpResponse response = channel.readOutbound();
 		Assert.assertTrue(response.status() == HttpResponseStatus.OK);
-		Assert.assertTrue(GSON.fromJson(response.content().toString(Charset.forName("utf-8")), Set.class).isEmpty());
+		Assert.assertTrue(GSON.fromJson(response.content().toString(Charset.forName("utf-8")), GetTypeResponse.class).isEmpty());
+	}
+	
+	@Test
+	public void sum_GetSum_Sum() {
+		Context context = Mockito.mock(Context.class);
+		Mockito.when(context.transitiveSum(1)).thenReturn(new BigDecimal(100.4));
+		GetSumResponse expected = new GetSumResponse(new BigDecimal(100.4));
+		EmbeddedChannel channel = new EmbeddedChannel(new HttpRestBridge(context));
+		HttpRequest request = createHttpRequest(HttpMethod.GET, "/transactionservice/sum/1", null);
+		channel.writeInbound(request);
+		channel.checkException();
+		FullHttpResponse response = channel.readOutbound();
+		Assert.assertTrue(response.status() == HttpResponseStatus.OK);
+		Assert.assertTrue(expected.equals(GSON.fromJson(response.content().toString(Charset.forName("utf-8")), GetSumResponse.class)));
+	}
+	
+	@Test
+	public void sum_GetSumOfInvalidId_Error() {
+		Context context = Mockito.mock(Context.class);
+		Mockito.when(context.transitiveSum(1)).thenReturn(null);
+		EmbeddedChannel channel = new EmbeddedChannel(new HttpRestBridge(context));
+		HttpRequest request = createHttpRequest(HttpMethod.GET, "/transactionservice/sum/1", null);
+		channel.writeInbound(request);
+		channel.checkException();
+		FullHttpResponse response = channel.readOutbound();
+		Assert.assertTrue(response.status() == HttpResponseStatus.BAD_REQUEST);
 	}
 	
 	private HttpRequest createHttpRequest(HttpMethod method, String path, String content) {

@@ -3,6 +3,7 @@ package eu.number26.challenge.protocol;
 import java.util.HashMap;
 import java.util.Map;
 
+import eu.number26.challenge.protocol.sum.GetSumHandler;
 import eu.number26.challenge.protocol.transaction.GetTransactionHandler;
 import eu.number26.challenge.protocol.transaction.PutTransactionHandler;
 import eu.number26.challenge.protocol.type.GetTypeHandler;
@@ -21,6 +22,8 @@ public class Configuration {
 		handler = new GetTransactionHandler();
 		HANDLERS.put(handler.getLink(), handler);
 		handler = new GetTypeHandler();
+		HANDLERS.put(handler.getLink(), handler);
+		handler = new GetSumHandler();
 		HANDLERS.put(handler.getLink(), handler);
 	}
 	
